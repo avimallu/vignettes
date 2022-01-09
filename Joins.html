@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+<meta name="date" content="2020-04-25" />
+
+<title>Joins in data.table</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Joins in data.table</h1>
+<h4 class="date">2020-04-25</h4>
+
+
+
+<p>This vignette introduces <code>data.table</code>’s manner of performing equi-joins, that is, whose predicates are based on equality <code>=</code>. This join will be updated with other types of joins - overlapping, non-equi-joins, and rolling joins when the content is ready.</p>
+<p>The vignette assumes familiarity with the <code>data.table</code> syntax. If that is not the case, please read the “Introduction to data.table”, “Reference semantics” and “Keys and fast binary search based subset” vignettes first.</p>
+<hr />
+<div id="loading-exemplar-datasets" class="section level2">
+<h2>Loading exemplar datasets</h2>
+<p>Let’s first load <code>data.table</code>,</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(data.table)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">options</span>(<span class="dt">datatable.print.class =</span> <span class="ot">TRUE</span>) <span class="co"># To show the column type</span></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="kw">options</span>(<span class="dt">datatable.print.trunc.cols =</span> <span class="ot">TRUE</span>)  <span class="co"># to limit printing</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="kw">options</span>(<span class="dt">datatable.print.nrows =</span> <span class="dv">5</span>)   <span class="co"># Limit output to 10 rows</span></a></code></pre></div>
+<p>In this vignette, we shall use the <code>nycflights13</code> dataset. Since the tables in the package aren’t stored as <code>data.tables</code>s, they shall need to be converted, and can be done as so:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">library</span>(nycflights13)</a>
+<a class="sourceLine" id="cb2-2" title="2"></a>
+<a class="sourceLine" id="cb2-3" title="3">table_names =<span class="st"> </span><span class="kw">data</span>(<span class="dt">package =</span> <span class="st">&quot;nycflights13&quot;</span>)<span class="op">$</span>results[, <span class="st">&quot;Item&quot;</span>]</a>
+<a class="sourceLine" id="cb2-4" title="4"></a>
+<a class="sourceLine" id="cb2-5" title="5"><span class="kw">lapply</span>(table_names, <span class="cf">function</span>(x) {</a>
+<a class="sourceLine" id="cb2-6" title="6">  <span class="kw">assign</span>(x, <span class="kw">setDT</span>(<span class="kw">copy</span>(<span class="kw">get</span>(x))), <span class="dt">envir =</span> .GlobalEnv)</a>
+<a class="sourceLine" id="cb2-7" title="7">})</a></code></pre></div>
+<p>To get an idea of what these datasets contain, you may try <code>?flights</code>.</p>
+</div>
+<div id="introduction-to-the-equi-join-syntax" class="section level2">
+<h2>Introduction to the equi-join syntax</h2>
+<p><code>data.table</code>’s syntax is designed to be <em>consistent</em> and <em>concise</em>, <em>fluid</em> in terms of limiting the number of functions it provides, and inherently capable of <em>automatically optimizing</em> operations internally, efficient in terms of both speed and memory.</p>
+<p>It is with this in mind that the syntax for joins aligns with that for most other <code>data.table</code> operations. The simplest join syntax for a <code>data.table</code> join is:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="co"># If keyed</span></a>
+<a class="sourceLine" id="cb3-2" title="2">X[Y]</a>
+<a class="sourceLine" id="cb3-3" title="3"></a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="co"># If not keyed, assuming keys</span></a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="co"># a and b respectively</span></a>
+<a class="sourceLine" id="cb3-6" title="6">X[Y, on =<span class="st"> &quot;a == b&quot;</span>]</a></code></pre></div>
+<p>This can be read as <strong>return the rows of <code>X</code> looking it up in <code>Y</code></strong>. Values of <code>X</code> that are absent in <code>Y</code> are returned as <code>NA</code>. To avoid this behaviour, one can use the <code>nomatch = NULL</code> parameter (more on this later).</p>
+<p>We are <em>intentionally</em> avoiding coining joins as “left” or “right” at this stage, whose motive will become clear as we proceed.</p>
+</div>
+<div id="basic-joins" class="section level2">
+<h2>Basic joins</h2>
+<p>The <code>flights</code> table provides the <code>air_time</code> of a flight, for each <code>carrier</code>. The <code>carrier</code> column values are coded.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">head</span>(flights[, .(carrier, air_time)])</a>
+<a class="sourceLine" id="cb4-2" title="2"><span class="co">#    carrier air_time</span></a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="co">#     &lt;char&gt;    &lt;num&gt;</span></a>
+<a class="sourceLine" id="cb4-4" title="4"><span class="co"># 1:      UA      227</span></a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="co"># 2:      UA      227</span></a>
+<a class="sourceLine" id="cb4-6" title="6"><span class="co"># 3:      AA      160</span></a>
+<a class="sourceLine" id="cb4-7" title="7"><span class="co"># 4:      B6      183</span></a>
+<a class="sourceLine" id="cb4-8" title="8"><span class="co"># 5:      DL      116</span></a>
+<a class="sourceLine" id="cb4-9" title="9"><span class="co"># 6:      UA      150</span></a></code></pre></div>
+<p>Let’s identify the total <code>air_time</code> of each <code>carrier</code> in the flights dataset, but replace the coded values with their actual names from the <code>airlines</code> table.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">head</span>(airlines)</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="co">#    carrier                     name</span></a>
+<a class="sourceLine" id="cb5-3" title="3"><span class="co">#     &lt;char&gt;                   &lt;char&gt;</span></a>
+<a class="sourceLine" id="cb5-4" title="4"><span class="co"># 1:      9E        Endeavor Air Inc.</span></a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="co"># 2:      AA   American Airlines Inc.</span></a>
+<a class="sourceLine" id="cb5-6" title="6"><span class="co"># 3:      AS     Alaska Airlines Inc.</span></a>
+<a class="sourceLine" id="cb5-7" title="7"><span class="co"># 4:      B6          JetBlue Airways</span></a>
+<a class="sourceLine" id="cb5-8" title="8"><span class="co"># 5:      DL     Delta Air Lines Inc.</span></a>
+<a class="sourceLine" id="cb5-9" title="9"><span class="co"># 6:      EV ExpressJet Airlines Inc.</span></a></code></pre></div>
+<p>This can be done by first leveraging the most important bit of information in the introduction vignette, <strong>as long as <code>j-expression</code> returns a <code>list</code>, each element of the list will be converted to a column in the resulting <code>data.table</code></strong>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1"><span class="co"># Since the key columns are the same in both</span></a>
+<a class="sourceLine" id="cb6-2" title="2">airlines[flights, .(name, air_time), on =<span class="st"> &quot;carrier&quot;</span>]</a>
+<a class="sourceLine" id="cb6-3" title="3"><span class="co">#                           name air_time</span></a>
+<a class="sourceLine" id="cb6-4" title="4"><span class="co">#                         &lt;char&gt;    &lt;num&gt;</span></a>
+<a class="sourceLine" id="cb6-5" title="5"><span class="co">#      1:  United Air Lines Inc.      227</span></a>
+<a class="sourceLine" id="cb6-6" title="6"><span class="co">#      2:  United Air Lines Inc.      227</span></a>
+<a class="sourceLine" id="cb6-7" title="7"><span class="co">#      3: American Airlines Inc.      160</span></a>
+<a class="sourceLine" id="cb6-8" title="8"><span class="co">#      4:        JetBlue Airways      183</span></a>
+<a class="sourceLine" id="cb6-9" title="9"><span class="co">#      5:   Delta Air Lines Inc.      116</span></a>
+<a class="sourceLine" id="cb6-10" title="10"><span class="co">#     ---                                </span></a>
+<a class="sourceLine" id="cb6-11" title="11"><span class="co"># 336772:      Endeavor Air Inc.       NA</span></a>
+<a class="sourceLine" id="cb6-12" title="12"><span class="co"># 336773:      Endeavor Air Inc.       NA</span></a>
+<a class="sourceLine" id="cb6-13" title="13"><span class="co"># 336774:              Envoy Air       NA</span></a>
+<a class="sourceLine" id="cb6-14" title="14"><span class="co"># 336775:              Envoy Air       NA</span></a>
+<a class="sourceLine" id="cb6-15" title="15"><span class="co"># 336776:              Envoy Air       NA</span></a></code></pre></div>
+<p>Notice how only two specific columns are specified in the join statement. This is intentional design - memory is created only for the columns used in the <code>j-expression</code>, and standard recycling rules apply. This ensures that <strong>only</strong> the required columns are merged, instead of a wasteful join of all columns followed by another subset<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>.</p>
+<p>We need to, in addition, calculate the sum of <code>air_time</code> to be able to answer the question posed earlier. To do this, we can <em>chain</em> commands, and write as so:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">airlines[flights, .(name, air_time), on =<span class="st"> &quot;carrier&quot;</span>][</a>
+<a class="sourceLine" id="cb7-2" title="2">  , .(<span class="dt">air_time =</span> <span class="kw">sum</span>(air_time, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)), name]</a>
+<a class="sourceLine" id="cb7-3" title="3"><span class="co">#                         name air_time</span></a>
+<a class="sourceLine" id="cb7-4" title="4"><span class="co">#                       &lt;char&gt;    &lt;num&gt;</span></a>
+<a class="sourceLine" id="cb7-5" title="5"><span class="co">#  1:    United Air Lines Inc. 12237728</span></a>
+<a class="sourceLine" id="cb7-6" title="6"><span class="co">#  2:   American Airlines Inc.  6032306</span></a>
+<a class="sourceLine" id="cb7-7" title="7"><span class="co">#  3:          JetBlue Airways  8170975</span></a>
+<a class="sourceLine" id="cb7-8" title="8"><span class="co">#  4:     Delta Air Lines Inc.  8277661</span></a>
+<a class="sourceLine" id="cb7-9" title="9"><span class="co">#  5: ExpressJet Airlines Inc.  4603614</span></a>
+<a class="sourceLine" id="cb7-10" title="10"><span class="co"># ---                                  </span></a>
+<a class="sourceLine" id="cb7-11" title="11"><span class="co"># 12:        Endeavor Air Inc.  1500801</span></a>
+<a class="sourceLine" id="cb7-12" title="12"><span class="co"># 13:   Frontier Airlines Inc.   156357</span></a>
+<a class="sourceLine" id="cb7-13" title="13"><span class="co"># 14:   Hawaiian Airlines Inc.   213096</span></a>
+<a class="sourceLine" id="cb7-14" title="14"><span class="co"># 15:       Mesa Airlines Inc.    35763</span></a>
+<a class="sourceLine" id="cb7-15" title="15"><span class="co"># 16:    SkyWest Airlines Inc.     2421</span></a></code></pre></div>
+<p>The <code>on</code> keyword is not required if the tables are keyed - i.e. the following code will still work:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">setkey</span>(flights, carrier)</a>
+<a class="sourceLine" id="cb8-2" title="2"><span class="kw">setkey</span>(airlines, carrier)</a>
+<a class="sourceLine" id="cb8-3" title="3"></a>
+<a class="sourceLine" id="cb8-4" title="4">airlines[flights, .(name, air_time)][</a>
+<a class="sourceLine" id="cb8-5" title="5">  , .(<span class="dt">air_time =</span> <span class="kw">sum</span>(air_time, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)), name]</a>
+<a class="sourceLine" id="cb8-6" title="6"><span class="co">#                       name air_time</span></a>
+<a class="sourceLine" id="cb8-7" title="7"><span class="co">#                     &lt;char&gt;    &lt;num&gt;</span></a>
+<a class="sourceLine" id="cb8-8" title="8"><span class="co">#  1:      Endeavor Air Inc.  1500801</span></a>
+<a class="sourceLine" id="cb8-9" title="9"><span class="co">#  2: American Airlines Inc.  6032306</span></a>
+<a class="sourceLine" id="cb8-10" title="10"><span class="co">#  3:   Alaska Airlines Inc.   230863</span></a>
+<a class="sourceLine" id="cb8-11" title="11"><span class="co">#  4:        JetBlue Airways  8170975</span></a>
+<a class="sourceLine" id="cb8-12" title="12"><span class="co">#  5:   Delta Air Lines Inc.  8277661</span></a>
+<a class="sourceLine" id="cb8-13" title="13"><span class="co"># ---                                </span></a>
+<a class="sourceLine" id="cb8-14" title="14"><span class="co"># 12:  United Air Lines Inc. 12237728</span></a>
+<a class="sourceLine" id="cb8-15" title="15"><span class="co"># 13:        US Airways Inc.  1756507</span></a>
+<a class="sourceLine" id="cb8-16" title="16"><span class="co"># 14:         Virgin America  1724104</span></a>
+<a class="sourceLine" id="cb8-17" title="17"><span class="co"># 15: Southwest Airlines Co.  1780402</span></a>
+<a class="sourceLine" id="cb8-18" title="18"><span class="co"># 16:     Mesa Airlines Inc.    35763</span></a></code></pre></div>
+<p>How do you decide what to use - <code>on</code> or <code>setkey</code> and a join? We’ve covered that <a href="#setkey_or_on">here</a>.</p>
+<div id="aggregation-on-join-by-.eachi" class="section level3">
+<h3>Aggregation on join: by = .EACHI</h3>
+<p>The added overhead of calculating the new key might be helpful for larger tables. Further, for cases where an immediate aggergation is required, the special symbol <code>.EACHI</code> can be used in <code>by</code> to perform a <em>grouping by each <code>i</code></em> <a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>, as so:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">flights[airlines, .(name, <span class="dt">air_time =</span> <span class="kw">sum</span>(air_time, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)), by =<span class="st"> </span>.EACHI]</a>
+<a class="sourceLine" id="cb9-2" title="2"><span class="co">#     carrier                   name air_time</span></a>
+<a class="sourceLine" id="cb9-3" title="3"><span class="co">#      &lt;char&gt;                 &lt;char&gt;    &lt;num&gt;</span></a>
+<a class="sourceLine" id="cb9-4" title="4"><span class="co">#  1:      9E      Endeavor Air Inc.  1500801</span></a>
+<a class="sourceLine" id="cb9-5" title="5"><span class="co">#  2:      AA American Airlines Inc.  6032306</span></a>
+<a class="sourceLine" id="cb9-6" title="6"><span class="co">#  3:      AS   Alaska Airlines Inc.   230863</span></a>
+<a class="sourceLine" id="cb9-7" title="7"><span class="co">#  4:      B6        JetBlue Airways  8170975</span></a>
+<a class="sourceLine" id="cb9-8" title="8"><span class="co">#  5:      DL   Delta Air Lines Inc.  8277661</span></a>
+<a class="sourceLine" id="cb9-9" title="9"><span class="co"># ---                                        </span></a>
+<a class="sourceLine" id="cb9-10" title="10"><span class="co"># 12:      UA  United Air Lines Inc. 12237728</span></a>
+<a class="sourceLine" id="cb9-11" title="11"><span class="co"># 13:      US        US Airways Inc.  1756507</span></a>
+<a class="sourceLine" id="cb9-12" title="12"><span class="co"># 14:      VX         Virgin America  1724104</span></a>
+<a class="sourceLine" id="cb9-13" title="13"><span class="co"># 15:      WN Southwest Airlines Co.  1780402</span></a>
+<a class="sourceLine" id="cb9-14" title="14"><span class="co"># 16:      YV     Mesa Airlines Inc.    35763</span></a></code></pre></div>
+<p>Notice that we had to reverse the order of the two tables above, because we were now performing a grouping on the joining column of <code>airlines</code>, and aggregating by it - we want one value per <code>carrier</code>. If you are unclear about this, try keeping the order unchanged and run the code.</p>
+</div>
+</div>
+<div id="adding-column-by-reference" class="section level2">
+<h2>Adding column by reference</h2>
+<p>The walrus operator <code>:=</code> is used in previous <code>data.table</code> vignettes to add columns by reference to an existing table, without creating a copy, thus saving memory (and speed). The same ability is extended to joins. The general syntax is the same, although with one major difference.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1">X[Y, new_col <span class="op">:</span><span class="er">=</span><span class="st"> </span>old_col, on =<span class="st"> &quot;a == b&quot;</span>]</a></code></pre></div>
+<p>Here, because <code>X</code> is updated by <em>reference</em>, the syntax changes definition to updating the rows of <code>X</code> where there is a match in <code>Y</code>, and not matching otherwise.</p>
+<p>Carrying onward our previous example:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1"><span class="co"># This creates a copy of flights in memory</span></a>
+<a class="sourceLine" id="cb11-2" title="2">flights_copy1 =<span class="st"> </span><span class="kw">copy</span>(flights) </a>
+<a class="sourceLine" id="cb11-3" title="3"></a>
+<a class="sourceLine" id="cb11-4" title="4">flights_copy1[airlines, carrier_name <span class="op">:</span><span class="er">=</span><span class="st"> </span>name, on =<span class="st"> &quot;carrier&quot;</span>]</a>
+<a class="sourceLine" id="cb11-5" title="5">flights_copy1[, .(carrier, carrier_name, air_time)]</a>
+<a class="sourceLine" id="cb11-6" title="6"><span class="co">#         carrier       carrier_name air_time</span></a>
+<a class="sourceLine" id="cb11-7" title="7"><span class="co">#          &lt;char&gt;             &lt;char&gt;    &lt;num&gt;</span></a>
+<a class="sourceLine" id="cb11-8" title="8"><span class="co">#      1:      9E  Endeavor Air Inc.      189</span></a>
+<a class="sourceLine" id="cb11-9" title="9"><span class="co">#      2:      9E  Endeavor Air Inc.       57</span></a>
+<a class="sourceLine" id="cb11-10" title="10"><span class="co">#      3:      9E  Endeavor Air Inc.       68</span></a>
+<a class="sourceLine" id="cb11-11" title="11"><span class="co">#      4:      9E  Endeavor Air Inc.       57</span></a>
+<a class="sourceLine" id="cb11-12" title="12"><span class="co">#      5:      9E  Endeavor Air Inc.       66</span></a>
+<a class="sourceLine" id="cb11-13" title="13"><span class="co">#     ---                                    </span></a>
+<a class="sourceLine" id="cb11-14" title="14"><span class="co"># 336772:      YV Mesa Airlines Inc.       41</span></a>
+<a class="sourceLine" id="cb11-15" title="15"><span class="co"># 336773:      YV Mesa Airlines Inc.       79</span></a>
+<a class="sourceLine" id="cb11-16" title="16"><span class="co"># 336774:      YV Mesa Airlines Inc.       42</span></a>
+<a class="sourceLine" id="cb11-17" title="17"><span class="co"># 336775:      YV Mesa Airlines Inc.       78</span></a>
+<a class="sourceLine" id="cb11-18" title="18"><span class="co"># 336776:      YV Mesa Airlines Inc.       75</span></a></code></pre></div>
+<p>The column <code>name</code> from <code>airlines</code> has been added by <em>reference</em> to <code>flights</code> without creating a copy of it (which the earlier operation without <code>:=</code> did).</p>
+<p>Note that this operation does not check for duplicate assignments for efficiency. If multiple values are passed for assignment to the same index, assignment to this index will occur repeatedly and sequentially, and is mentioned in the documentation for <code>set</code>. This is where the operation is not strictly a “left join”. Traditional joining methods will be covered later.</p>
+</div>
+<div id="joining-multiple-columns-by-reference" class="section level2">
+<h2>Joining multiple columns by reference</h2>
+<div id="by-using-the-functional-form-of" class="section level3">
+<h3>By using the functional form of <code>:=</code></h3>
+<p>What if we needed to join multiple columns? For instance, we may be interested in the the manufacturer, year of manufacture, and the speed of the planes. These can be found in the <code>planes</code> dataset, under <code>manufacturer</code>, <code>year</code> and <code>model</code> respectively.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1">flights_copy2 &lt;-<span class="st"> </span><span class="kw">copy</span>(flights)</a>
+<a class="sourceLine" id="cb12-2" title="2"></a>
+<a class="sourceLine" id="cb12-3" title="3">flights_copy2[planes, on =<span class="st"> &quot;tailnum&quot;</span>,</a>
+<a class="sourceLine" id="cb12-4" title="4">             <span class="st">`</span><span class="dt">:=</span><span class="st">`</span>(<span class="dt">manufacturer =</span> manufacturer,</a>
+<a class="sourceLine" id="cb12-5" title="5">                  <span class="dt">manfact_year =</span> i.year,</a>
+<a class="sourceLine" id="cb12-6" title="6">                  <span class="dt">speed        =</span> speed)]</a>
+<a class="sourceLine" id="cb12-7" title="7"></a>
+<a class="sourceLine" id="cb12-8" title="8">flights_copy2[, .(carrier, tailnum, manufacturer, manfact_year, speed)]</a>
+<a class="sourceLine" id="cb12-9" title="9"><span class="co">#         carrier tailnum           manufacturer manfact_year speed</span></a>
+<a class="sourceLine" id="cb12-10" title="10"><span class="co">#          &lt;char&gt;  &lt;char&gt;                 &lt;char&gt;        &lt;int&gt; &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb12-11" title="11"><span class="co">#      1:      9E  N915XJ         BOMBARDIER INC         2007    NA</span></a>
+<a class="sourceLine" id="cb12-12" title="12"><span class="co">#      2:      9E  N8444F         BOMBARDIER INC         2000    NA</span></a>
+<a class="sourceLine" id="cb12-13" title="13"><span class="co">#      3:      9E  N920XJ         BOMBARDIER INC         2008    NA</span></a>
+<a class="sourceLine" id="cb12-14" title="14"><span class="co">#      4:      9E  N8409N         BOMBARDIER INC         2000    NA</span></a>
+<a class="sourceLine" id="cb12-15" title="15"><span class="co">#      5:      9E  N8631E         BOMBARDIER INC         2002    NA</span></a>
+<a class="sourceLine" id="cb12-16" title="16"><span class="co">#     ---                                                          </span></a>
+<a class="sourceLine" id="cb12-17" title="17"><span class="co"># 336772:      YV  N518LR         BOMBARDIER INC         2006    NA</span></a>
+<a class="sourceLine" id="cb12-18" title="18"><span class="co"># 336773:      YV  N932LR         BOMBARDIER INC         2005    NA</span></a>
+<a class="sourceLine" id="cb12-19" title="19"><span class="co"># 336774:      YV  N510MJ         BOMBARDIER INC         2003    NA</span></a>
+<a class="sourceLine" id="cb12-20" title="20"><span class="co"># 336775:      YV  N905FJ AVIONS MARCEL DASSAULT         1986    NA</span></a>
+<a class="sourceLine" id="cb12-21" title="21"><span class="co"># 336776:      YV  N924FJ         BOMBARDIER INC         2004    NA</span></a></code></pre></div>
+<p>Notice how <code>i.</code> was prefixed to <code>year</code> - this is to indicate to <code>data.table</code> that the column is to be taken from the <code>i</code> table, <code>planes</code>. This prevents ambiguity on matching column names in <code>x</code> (which is <code>flights_copy</code>) and <code>i</code>.</p>
+<p>Also, the <code>on</code> keyword has been placed prior to the <code>j-expression</code>, and this makes it extra clear on which column(s) the join is taking place.</p>
+</div>
+<div id="adding-multiple-columns-programatically" class="section level3">
+<h3>Adding multiple columns programatically</h3>
+<p>The above method can quickly become cumbersome for multiple columns. We can fall to base R’s <code>get</code> and <code>mget</code> functions, which can lookup one and more respectively, object(s) by name in the environment of the function call.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1"><span class="co"># Pulling in a different set of columns</span></a>
+<a class="sourceLine" id="cb13-2" title="2">pull_cols =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;type&quot;</span>, <span class="st">&quot;model&quot;</span>, <span class="st">&quot;engine&quot;</span>)</a>
+<a class="sourceLine" id="cb13-3" title="3"></a>
+<a class="sourceLine" id="cb13-4" title="4">flights_copy2[planes, on =<span class="st"> &quot;tailnum&quot;</span>,</a>
+<a class="sourceLine" id="cb13-5" title="5">              (pull_cols) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw">mget</span>(<span class="kw">paste0</span>(<span class="st">&quot;i.&quot;</span>, pull_cols))]</a>
+<a class="sourceLine" id="cb13-6" title="6"></a>
+<a class="sourceLine" id="cb13-7" title="7">flights_copy2[, .(carrier, tailnum, type, model, engine)]</a>
+<a class="sourceLine" id="cb13-8" title="8"><span class="co">#         carrier tailnum                    type              model    engine</span></a>
+<a class="sourceLine" id="cb13-9" title="9"><span class="co">#          &lt;char&gt;  &lt;char&gt;                  &lt;char&gt;             &lt;char&gt;    &lt;char&gt;</span></a>
+<a class="sourceLine" id="cb13-10" title="10"><span class="co">#      1:      9E  N915XJ Fixed wing multi engine        CL-600-2D24 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-11" title="11"><span class="co">#      2:      9E  N8444F Fixed wing multi engine        CL-600-2B19 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-12" title="12"><span class="co">#      3:      9E  N920XJ Fixed wing multi engine        CL-600-2D24 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-13" title="13"><span class="co">#      4:      9E  N8409N Fixed wing multi engine        CL-600-2B19 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-14" title="14"><span class="co">#      5:      9E  N8631E Fixed wing multi engine        CL-600-2B19 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-15" title="15"><span class="co">#     ---                                                                     </span></a>
+<a class="sourceLine" id="cb13-16" title="16"><span class="co"># 336772:      YV  N518LR Fixed wing multi engine        CL-600-2C10 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-17" title="17"><span class="co"># 336773:      YV  N932LR Fixed wing multi engine        CL-600-2D24 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-18" title="18"><span class="co"># 336774:      YV  N510MJ Fixed wing multi engine        CL-600-2C10 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-19" title="19"><span class="co"># 336775:      YV  N905FJ Fixed wing multi engine MYSTERE FALCON 900 Turbo-fan</span></a>
+<a class="sourceLine" id="cb13-20" title="20"><span class="co"># 336776:      YV  N924FJ Fixed wing multi engine        CL-600-2D24 Turbo-fan</span></a></code></pre></div>
+<p>We use <code>i.</code> on all the column names to avoid ambiguity, and then reference them in the scope of the <code>i</code> table through <code>mget</code>. We need to use <code>(pull_cols)</code> to force <code>data.table</code> to treat it as a vector of character names, else we’ll have a column called <code>pull_cols</code> joined in the table. When you only need one column, you can use <code>get</code> instead.</p>
+</div>
+</div>
+<div id="update-by-join" class="section level2">
+<h2>Update by join</h2>
+<p>Oftentimes, we may need to update values in one table cognizant of another. Let’s calculate the actual speed of a record in the <code>flights</code> table.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1">flights[, speed <span class="op">:</span><span class="er">=</span><span class="st"> </span>distance <span class="op">/</span><span class="st"> </span>air_time <span class="op">*</span><span class="st"> </span><span class="dv">60</span>]</a></code></pre></div>
+<p>Suppose we have to replace the <code>speed</code> calculated above for the flights of interest with the average cruising speed from <code>planes</code>, <em>only where present</em>. In addition, we are also asked to replace the values where the <code>speed</code> is below <code>80</code> with <code>NA</code>. We can do that with:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" title="1">flights[planes, on =<span class="st"> &quot;tailnum&quot;</span>,</a>
+<a class="sourceLine" id="cb15-2" title="2">        speed <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw">fcase</span>(<span class="op">!</span><span class="kw">is.na</span>(i.speed), <span class="kw">as.numeric</span>(i.speed),</a>
+<a class="sourceLine" id="cb15-3" title="3">                       speed <span class="op">&gt;=</span><span class="st"> </span><span class="dv">80</span>, speed,</a>
+<a class="sourceLine" id="cb15-4" title="4">                       <span class="dt">default =</span> <span class="ot">NA_real_</span>)]</a>
+<a class="sourceLine" id="cb15-5" title="5"></a>
+<a class="sourceLine" id="cb15-6" title="6">flights[, .(year, month, day, dep_time, carrier, flight, tailnum, speed)]</a>
+<a class="sourceLine" id="cb15-7" title="7"><span class="co">#          year month   day dep_time carrier flight tailnum    speed</span></a>
+<a class="sourceLine" id="cb15-8" title="8"><span class="co">#         &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;  &lt;char&gt;  &lt;int&gt;  &lt;char&gt;    &lt;num&gt;</span></a>
+<a class="sourceLine" id="cb15-9" title="9"><span class="co">#      1:  2013     1     1      810      9E   3538  N915XJ 326.6667</span></a>
+<a class="sourceLine" id="cb15-10" title="10"><span class="co">#      2:  2013     1     1     1451      9E   4105  N8444F 240.0000</span></a>
+<a class="sourceLine" id="cb15-11" title="11"><span class="co">#      3:  2013     1     1     1452      9E   3295  N920XJ 265.5882</span></a>
+<a class="sourceLine" id="cb15-12" title="12"><span class="co">#      4:  2013     1     1     1454      9E   3843  N8409N 220.0000</span></a>
+<a class="sourceLine" id="cb15-13" title="13"><span class="co">#      5:  2013     1     1     1507      9E   3792  N8631E 240.0000</span></a>
+<a class="sourceLine" id="cb15-14" title="14"><span class="co">#     ---                                                           </span></a>
+<a class="sourceLine" id="cb15-15" title="15"><span class="co"># 336772:  2013     9    29     1650      YV   3771  N518LR 335.1220</span></a>
+<a class="sourceLine" id="cb15-16" title="16"><span class="co"># 336773:  2013     9    29     1801      YV   2751  N932LR 413.1646</span></a>
+<a class="sourceLine" id="cb15-17" title="17"><span class="co"># 336774:  2013     9    30     1643      YV   3771  N510MJ 327.1429</span></a>
+<a class="sourceLine" id="cb15-18" title="18"><span class="co"># 336775:  2013     9    30     1731      YV   2751  N905FJ 418.4615</span></a>
+<a class="sourceLine" id="cb15-19" title="19"><span class="co"># 336776:  2013     9    30     2000      YV   2677  N924FJ 435.2000</span></a></code></pre></div>
+<p>There are a few things happening in a small part of the code. We break it down as so:</p>
+<ol style="list-style-type: decimal">
+<li>First, <code>flights</code> is joined to <code>planes</code> on <code>tailnum</code> as done previously.</li>
+<li>Second, the <code>fcase</code> function is used.
+<ul>
+<li>This is analogus to SQL’s <code>CASE WHEN</code> expression and <code>dplyr::case_when</code></li>
+<li><code>fcase</code> is lazily evaluated - the second condition is not evaluated unless the first is <code>FALSE</code>, the default is not evaluated unless the first two are <code>FALSE</code> and so on.</li>
+<li>Conceptually, it is identical to a nested <code>fifelse</code>, but in implementation, it is faster owing to lazy evaluation.</li>
+<li>The <code>as.numeric</code> and <code>NA_real_</code> are required owing to <code>fcase</code>’s requirement that outputs should be of the same type. Check <code>?NA</code> for more information on the different <em>types of </em> <code>NA</code> values available.</li>
+</ul></li>
+<li>Third, it uses <code>i.</code> to dissociate <code>speed</code> from <code>flights</code> and <code>planes</code>, as done previously.</li>
+</ol>
+<p>We thus cover how we can perform a <em>update-on-join</em> very efficiently - no additional columns are added (which would have been required in a traditional <code>merge</code>, and the code remains concise. Another important point to note is that since <code>speed</code> is already defined, <code>data.table</code> throws an error if a join changes the data type of the column - you will need to use the appropriate <code>as.*</code> method to avoid the error.</p>
+</div>
+<div id="obtaining-traditional-joins-in-data.table" class="section level2">
+<h2>Obtaining traditional joins in <code>data.table</code></h2>
+<p><code>data.table</code>’s join by reference techniques are for typical use cases, emphasized for speed and memory efficiency. Sometimes we may still require traditional cases of left, right, full, inner, and cross joins.</p>
+<p>First, we create exemplar tables to demonstrate the various joins that can be performed:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" title="1">X =<span class="st"> </span><span class="kw">data.table</span>(<span class="dt">small =</span> letters[<span class="dv">1</span><span class="op">:</span><span class="dv">15</span>], <span class="dt">key_x =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">15</span>)</a>
+<a class="sourceLine" id="cb16-2" title="2">Y =<span class="st"> </span><span class="kw">data.table</span>(<span class="dt">caps =</span> <span class="kw">c</span>(LETTERS[<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>], LETTERS[<span class="dv">19</span><span class="op">:</span><span class="dv">20</span>]),</a>
+<a class="sourceLine" id="cb16-3" title="3">               <span class="dt">month =</span> month.name[<span class="dv">1</span><span class="op">:</span><span class="dv">12</span>],</a>
+<a class="sourceLine" id="cb16-4" title="4">               <span class="dt">key_y =</span> <span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>, <span class="dv">19</span><span class="op">:</span><span class="dv">20</span>))</a></code></pre></div>
+<div id="right-left-inner-anti-and-semi-joins" class="section level3">
+<h3>Right, left, inner, anti and semi-joins</h3>
+<p>A typical right join can be obtained by:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" title="1">X[Y, on =<span class="st"> &quot;key_x == key_y&quot;</span>]</a>
+<a class="sourceLine" id="cb17-2" title="2"><span class="co">#      small key_x   caps     month</span></a>
+<a class="sourceLine" id="cb17-3" title="3"><span class="co">#     &lt;char&gt; &lt;int&gt; &lt;char&gt;    &lt;char&gt;</span></a>
+<a class="sourceLine" id="cb17-4" title="4"><span class="co">#  1:      a     1      A   January</span></a>
+<a class="sourceLine" id="cb17-5" title="5"><span class="co">#  2:      b     2      B  February</span></a>
+<a class="sourceLine" id="cb17-6" title="6"><span class="co">#  3:      c     3      C     March</span></a>
+<a class="sourceLine" id="cb17-7" title="7"><span class="co">#  4:      d     4      D     April</span></a>
+<a class="sourceLine" id="cb17-8" title="8"><span class="co">#  5:      e     5      E       May</span></a>
+<a class="sourceLine" id="cb17-9" title="9"><span class="co"># ---                              </span></a>
+<a class="sourceLine" id="cb17-10" title="10"><span class="co">#  8:      h     8      H    August</span></a>
+<a class="sourceLine" id="cb17-11" title="11"><span class="co">#  9:      i     9      I September</span></a>
+<a class="sourceLine" id="cb17-12" title="12"><span class="co"># 10:      j    10      J   October</span></a>
+<a class="sourceLine" id="cb17-13" title="13"><span class="co"># 11:   &lt;NA&gt;    19      S  November</span></a>
+<a class="sourceLine" id="cb17-14" title="14"><span class="co"># 12:   &lt;NA&gt;    20      T  December</span></a></code></pre></div>
+<p>For a left join, reverse the positions of the two tables:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" title="1">Y[X, on =<span class="st"> &quot;key_y == key_x&quot;</span>]</a>
+<a class="sourceLine" id="cb18-2" title="2"><span class="co">#       caps    month key_y  small</span></a>
+<a class="sourceLine" id="cb18-3" title="3"><span class="co">#     &lt;char&gt;   &lt;char&gt; &lt;int&gt; &lt;char&gt;</span></a>
+<a class="sourceLine" id="cb18-4" title="4"><span class="co">#  1:      A  January     1      a</span></a>
+<a class="sourceLine" id="cb18-5" title="5"><span class="co">#  2:      B February     2      b</span></a>
+<a class="sourceLine" id="cb18-6" title="6"><span class="co">#  3:      C    March     3      c</span></a>
+<a class="sourceLine" id="cb18-7" title="7"><span class="co">#  4:      D    April     4      d</span></a>
+<a class="sourceLine" id="cb18-8" title="8"><span class="co">#  5:      E      May     5      e</span></a>
+<a class="sourceLine" id="cb18-9" title="9"><span class="co"># ---                             </span></a>
+<a class="sourceLine" id="cb18-10" title="10"><span class="co"># 11:   &lt;NA&gt;     &lt;NA&gt;    11      k</span></a>
+<a class="sourceLine" id="cb18-11" title="11"><span class="co"># 12:   &lt;NA&gt;     &lt;NA&gt;    12      l</span></a>
+<a class="sourceLine" id="cb18-12" title="12"><span class="co"># 13:   &lt;NA&gt;     &lt;NA&gt;    13      m</span></a>
+<a class="sourceLine" id="cb18-13" title="13"><span class="co"># 14:   &lt;NA&gt;     &lt;NA&gt;    14      n</span></a>
+<a class="sourceLine" id="cb18-14" title="14"><span class="co"># 15:   &lt;NA&gt;     &lt;NA&gt;    15      o</span></a></code></pre></div>
+<p>For an inner join, use the <code>nomatch = NULL</code> paramter.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" title="1">Y[X, on =<span class="st"> &quot;key_y == key_x&quot;</span>, nomatch =<span class="st"> </span><span class="ot">NULL</span>]</a>
+<a class="sourceLine" id="cb19-2" title="2"><span class="co">#       caps     month key_y  small</span></a>
+<a class="sourceLine" id="cb19-3" title="3"><span class="co">#     &lt;char&gt;    &lt;char&gt; &lt;int&gt; &lt;char&gt;</span></a>
+<a class="sourceLine" id="cb19-4" title="4"><span class="co">#  1:      A   January     1      a</span></a>
+<a class="sourceLine" id="cb19-5" title="5"><span class="co">#  2:      B  February     2      b</span></a>
+<a class="sourceLine" id="cb19-6" title="6"><span class="co">#  3:      C     March     3      c</span></a>
+<a class="sourceLine" id="cb19-7" title="7"><span class="co">#  4:      D     April     4      d</span></a>
+<a class="sourceLine" id="cb19-8" title="8"><span class="co">#  5:      E       May     5      e</span></a>
+<a class="sourceLine" id="cb19-9" title="9"><span class="co">#  6:      F      June     6      f</span></a>
+<a class="sourceLine" id="cb19-10" title="10"><span class="co">#  7:      G      July     7      g</span></a>
+<a class="sourceLine" id="cb19-11" title="11"><span class="co">#  8:      H    August     8      h</span></a>
+<a class="sourceLine" id="cb19-12" title="12"><span class="co">#  9:      I September     9      i</span></a>
+<a class="sourceLine" id="cb19-13" title="13"><span class="co"># 10:      J   October    10      j</span></a>
+<a class="sourceLine" id="cb19-14" title="14"><span class="co"># The below produces the same result, but columns are ordered differently</span></a>
+<a class="sourceLine" id="cb19-15" title="15"><span class="co"># X[Y, on = &quot;key_x == key_y&quot;, nomatch = NULL]</span></a></code></pre></div>
+<p>An anti-join can be performed by:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" title="1">X[<span class="op">!</span>Y, on =<span class="st"> &quot;key_x == key_y&quot;</span>]</a>
+<a class="sourceLine" id="cb20-2" title="2"><span class="co">#     small key_x</span></a>
+<a class="sourceLine" id="cb20-3" title="3"><span class="co">#    &lt;char&gt; &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb20-4" title="4"><span class="co"># 1:      k    11</span></a>
+<a class="sourceLine" id="cb20-5" title="5"><span class="co"># 2:      l    12</span></a>
+<a class="sourceLine" id="cb20-6" title="6"><span class="co"># 3:      m    13</span></a>
+<a class="sourceLine" id="cb20-7" title="7"><span class="co"># 4:      n    14</span></a>
+<a class="sourceLine" id="cb20-8" title="8"><span class="co"># 5:      o    15</span></a></code></pre></div>
+<p>And a semi-join is an <em>anti</em>-anti join:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" title="1">X[<span class="op">!</span>X[<span class="op">!</span>Y, on =<span class="st"> &quot;key_x == key_y&quot;</span>], on =<span class="st"> &quot;key_x&quot;</span>]</a>
+<a class="sourceLine" id="cb21-2" title="2"><span class="co">#      small key_x</span></a>
+<a class="sourceLine" id="cb21-3" title="3"><span class="co">#     &lt;char&gt; &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb21-4" title="4"><span class="co">#  1:      a     1</span></a>
+<a class="sourceLine" id="cb21-5" title="5"><span class="co">#  2:      b     2</span></a>
+<a class="sourceLine" id="cb21-6" title="6"><span class="co">#  3:      c     3</span></a>
+<a class="sourceLine" id="cb21-7" title="7"><span class="co">#  4:      d     4</span></a>
+<a class="sourceLine" id="cb21-8" title="8"><span class="co">#  5:      e     5</span></a>
+<a class="sourceLine" id="cb21-9" title="9"><span class="co">#  6:      f     6</span></a>
+<a class="sourceLine" id="cb21-10" title="10"><span class="co">#  7:      g     7</span></a>
+<a class="sourceLine" id="cb21-11" title="11"><span class="co">#  8:      h     8</span></a>
+<a class="sourceLine" id="cb21-12" title="12"><span class="co">#  9:      i     9</span></a>
+<a class="sourceLine" id="cb21-13" title="13"><span class="co"># 10:      j    10</span></a></code></pre></div>
+</div>
+<div id="performing-full-joins-and-using-merge" class="section level3">
+<h3>Performing full joins and using <code>merge</code></h3>
+<p>Full joins are memory intensive - avoid it unless you really need to perform it. <code>data.table</code> recommends using the <code>merge</code> function from base R (it calls <code>merge.data.table</code> for <code>data.table</code> objects, and is significantly faster than base):</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" title="1"><span class="kw">merge</span>(X, Y, <span class="dt">by.x =</span> <span class="st">&quot;key_x&quot;</span>, <span class="dt">by.y =</span> <span class="st">&quot;key_y&quot;</span>, <span class="dt">all =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb22-2" title="2"><span class="co">#     key_x  small   caps    month</span></a>
+<a class="sourceLine" id="cb22-3" title="3"><span class="co">#     &lt;int&gt; &lt;char&gt; &lt;char&gt;   &lt;char&gt;</span></a>
+<a class="sourceLine" id="cb22-4" title="4"><span class="co">#  1:     1      a      A  January</span></a>
+<a class="sourceLine" id="cb22-5" title="5"><span class="co">#  2:     2      b      B February</span></a>
+<a class="sourceLine" id="cb22-6" title="6"><span class="co">#  3:     3      c      C    March</span></a>
+<a class="sourceLine" id="cb22-7" title="7"><span class="co">#  4:     4      d      D    April</span></a>
+<a class="sourceLine" id="cb22-8" title="8"><span class="co">#  5:     5      e      E      May</span></a>
+<a class="sourceLine" id="cb22-9" title="9"><span class="co"># ---                             </span></a>
+<a class="sourceLine" id="cb22-10" title="10"><span class="co"># 13:    13      m   &lt;NA&gt;     &lt;NA&gt;</span></a>
+<a class="sourceLine" id="cb22-11" title="11"><span class="co"># 14:    14      n   &lt;NA&gt;     &lt;NA&gt;</span></a>
+<a class="sourceLine" id="cb22-12" title="12"><span class="co"># 15:    15      o   &lt;NA&gt;     &lt;NA&gt;</span></a>
+<a class="sourceLine" id="cb22-13" title="13"><span class="co"># 16:    19   &lt;NA&gt;      S November</span></a>
+<a class="sourceLine" id="cb22-14" title="14"><span class="co"># 17:    20   &lt;NA&gt;      T December</span></a></code></pre></div>
+<p>Alternately, you can also use the following esoteric approach for a faster<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a> full join:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" title="1">unique_keys =<span class="st"> </span><span class="kw">unique</span>(<span class="kw">c</span>(X[, key_x], Y[, key_y]))</a>
+<a class="sourceLine" id="cb23-2" title="2"></a>
+<a class="sourceLine" id="cb23-3" title="3"><span class="kw">setkey</span>(Y, key_y)</a>
+<a class="sourceLine" id="cb23-4" title="4"></a>
+<a class="sourceLine" id="cb23-5" title="5"><span class="co"># Keys are NULLed upon first join</span></a>
+<a class="sourceLine" id="cb23-6" title="6">X[Y[<span class="kw">J</span>(unique_keys)], on =<span class="st"> &quot;key_x == key_y&quot;</span>]</a>
+<a class="sourceLine" id="cb23-7" title="7"><span class="co">#      small key_x   caps    month</span></a>
+<a class="sourceLine" id="cb23-8" title="8"><span class="co">#     &lt;char&gt; &lt;int&gt; &lt;char&gt;   &lt;char&gt;</span></a>
+<a class="sourceLine" id="cb23-9" title="9"><span class="co">#  1:      a     1      A  January</span></a>
+<a class="sourceLine" id="cb23-10" title="10"><span class="co">#  2:      b     2      B February</span></a>
+<a class="sourceLine" id="cb23-11" title="11"><span class="co">#  3:      c     3      C    March</span></a>
+<a class="sourceLine" id="cb23-12" title="12"><span class="co">#  4:      d     4      D    April</span></a>
+<a class="sourceLine" id="cb23-13" title="13"><span class="co">#  5:      e     5      E      May</span></a>
+<a class="sourceLine" id="cb23-14" title="14"><span class="co"># ---                             </span></a>
+<a class="sourceLine" id="cb23-15" title="15"><span class="co"># 13:      m    13   &lt;NA&gt;     &lt;NA&gt;</span></a>
+<a class="sourceLine" id="cb23-16" title="16"><span class="co"># 14:      n    14   &lt;NA&gt;     &lt;NA&gt;</span></a>
+<a class="sourceLine" id="cb23-17" title="17"><span class="co"># 15:      o    15   &lt;NA&gt;     &lt;NA&gt;</span></a>
+<a class="sourceLine" id="cb23-18" title="18"><span class="co"># 16:   &lt;NA&gt;    19      S November</span></a>
+<a class="sourceLine" id="cb23-19" title="19"><span class="co"># 17:   &lt;NA&gt;    20      T December</span></a></code></pre></div>
+<div id="using-merge" class="section level4">
+<h4>Using <code>merge</code></h4>
+<p>Base R’s <code>merge</code> can be used for all the traditional left, right, inner etc. type of joins - they will not be as efficient as <code>data.table</code>’s <code>[</code> operator. Below is a table summary of the syntax comparisons using <code>data.table</code>’s <code>[</code> and R’s <code>merge</code> (assuming only one key, <code>key</code> for simplicity):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Join</th>
+<th align="left"><code>data.table</code></th>
+<th align="left"><code>merge</code></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Left</td>
+<td align="left"><code>Y[X, on = &quot;key&quot;]</code></td>
+<td align="left"><code>merge(X, Y, by = &quot;key&quot;, all.x = TRUE)</code></td>
+</tr>
+<tr class="even">
+<td>Right</td>
+<td align="left"><code>X[Y, on = &quot;key&quot;]</code></td>
+<td align="left"><code>merge(X, Y, by = &quot;key&quot;, all.y = FALSE)</code></td>
+</tr>
+<tr class="odd">
+<td>Inner <code>X</code> on <code>Y</code></td>
+<td align="left"><code>X[Y, on = &quot;key&quot;, nomatch = NULL]</code></td>
+<td align="left"><code>merge(X, Y, by = &quot;key&quot;)</code></td>
+</tr>
+<tr class="even">
+<td>Full</td>
+<td align="left">(check above)</td>
+<td align="left"><code>merge(X, Y, by = &quot;key&quot;, all = TRUE)</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="cross-joins" class="section level3">
+<h3>Cross Joins</h3>
+<p>To perform cross join efficiently in data.table, use the <code>CJ</code> command.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb24-1" title="1"><span class="kw">CJ</span>(<span class="dt">x =</span> letters[<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>], <span class="dt">y =</span> LETTERS[<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>])</a>
+<a class="sourceLine" id="cb24-2" title="2"><span class="co">#           x      y</span></a>
+<a class="sourceLine" id="cb24-3" title="3"><span class="co">#      &lt;char&gt; &lt;char&gt;</span></a>
+<a class="sourceLine" id="cb24-4" title="4"><span class="co">#   1:      a      A</span></a>
+<a class="sourceLine" id="cb24-5" title="5"><span class="co">#   2:      a      B</span></a>
+<a class="sourceLine" id="cb24-6" title="6"><span class="co">#   3:      a      C</span></a>
+<a class="sourceLine" id="cb24-7" title="7"><span class="co">#   4:      a      D</span></a>
+<a class="sourceLine" id="cb24-8" title="8"><span class="co">#   5:      a      E</span></a>
+<a class="sourceLine" id="cb24-9" title="9"><span class="co">#  ---              </span></a>
+<a class="sourceLine" id="cb24-10" title="10"><span class="co">#  96:      j      F</span></a>
+<a class="sourceLine" id="cb24-11" title="11"><span class="co">#  97:      j      G</span></a>
+<a class="sourceLine" id="cb24-12" title="12"><span class="co">#  98:      j      H</span></a>
+<a class="sourceLine" id="cb24-13" title="13"><span class="co">#  99:      j      I</span></a>
+<a class="sourceLine" id="cb24-14" title="14"><span class="co"># 100:      j      J</span></a></code></pre></div>
+<p>This can then be further joined with parent tables, if any, to bring in the columns of interest.</p>
+</div>
+</div>
+<div id="protection-for-potential-misspecified-joins---allow.cartesian" class="section level2">
+<h2>Protection for potential misspecified joins - <code>allow.cartesian</code></h2>
+<p>When multiple matches exist for every row in <code>x</code> in <code>i</code>, then <code>data.table</code> prevents a join when the number of rows in the output exceeds a certain value (<code>nrow(x) + nrow(i)</code>), so as to prevent unintentional “cartersian products”. Here, the word “cartesian” is used loosely to indicate a <em>large multiplication of data</em>. To over-ride this when you are certain that you want such a join, specify <code>allow.cartesian = TRUE</code>.</p>
+</div>
+<div id="to-setkey-or-to-on" class="section level2">
+<h2><a name="setkey_or_on"></a>To <code>setkey</code> or to <code>on</code>?</h2>
+<p>We provide three reasons<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a>:</p>
+<ol style="list-style-type: decimal">
+<li><p>For large tables that require successive joins, <code>setkey</code>, which <em>physically</em> reorders the table in memory, becomes the bottleneck in performance as opposed to the actual join, and for smaller tables, the difference is insignificant.</p></li>
+<li><p>For cases of adding columns by <em>reference</em>, <code>on</code> is often more performant than <code>setkey</code>, because no reordering of the table is required in memory.</p></li>
+<li><p>Finally, usage of <code>on</code> makes for much cleaner code where it is possible to clearly distinguish the syntax as an operation involving two <code>data.table</code>s.</p></li>
+</ol>
+<p>for our recommendation of:</p>
+<blockquote>
+<p>In most cases there shouldn’t be a need to set keys anymore. We recommend using <code>on</code> wherever possible, unless setting key has a dramatic improvement in performance that you’d like to exploit.</p>
+</blockquote>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><a href="https://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join" class="uri">https://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join</a><a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p><a href="https://cran.r-project.org/web/packages/data.table/vignettes/datatable-faq.html">data.table FAQ 1.12</a><a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn3"><p><a href="https://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join" class="uri">https://stackoverflow.com/questions/12773822/why-does-xy-join-of-data-tables-not-allow-a-full-outer-join-or-a-left-join</a><a href="#fnref3" class="footnote-back">↩</a></p></li>
+<li id="fn4"><p><a href="https://stackoverflow.com/questions/20039335/what-is-the-purpose-of-setting-a-key-in-data-table" class="uri">https://stackoverflow.com/questions/20039335/what-is-the-purpose-of-setting-a-key-in-data-table</a><a href="#fnref4" class="footnote-back">↩</a></p></li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
